@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Video, Calendar, Clock, MessageSquare, ArrowLeft, Plus, CheckCircle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase/client"
+import { consultationsApi } from "@/lib/api/client"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import type { UserRole } from "@/lib/types"
@@ -69,19 +69,11 @@ export function ConsultationsContent({ userId, userRole, consultations, provider
     setIsLoading(true)
 
     try {
-      if (!supabase) {
-        throw new Error("Supabase client not available")
-      }
-
-      const { error } = await supabase.from("consultations").insert({
-        patient_id: userId,
+      await consultationsApi.create({
         provider_id: selectedProvider,
         consultation_type: consultationType,
         symptoms: symptoms,
-        status: "pending",
       })
-
-      if (error) throw error
 
       toast.success("Consultation request sent successfully")
       setIsBookingOpen(false)
@@ -101,16 +93,17 @@ export function ConsultationsContent({ userId, userRole, consultations, provider
   const handleAcceptConsultation = async (consultationId: string) => {
     setIsLoading(true)
     try {
-      if (!supabase) {
-        throw new Error("Supabase client not available")
-      }
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const response = await fetch(`${API_BASE_URL}/consultations/${consultationId}?new_status=accepted`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
 
-      const { error } = await supabase
-        .from("consultations")
-        .update({ status: "accepted", scheduled_at: new Date().toISOString() })
-        .eq("id", consultationId)
-
-      if (error) throw error
+      if (!response.ok) throw new Error("Failed to accept")
 
       toast.success("Consultation accepted")
       window.location.reload()
@@ -125,13 +118,17 @@ export function ConsultationsContent({ userId, userRole, consultations, provider
   const handleCancelConsultation = async (consultationId: string) => {
     setIsLoading(true)
     try {
-      if (!supabase) {
-        throw new Error("Supabase client not available")
-      }
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const response = await fetch(`${API_BASE_URL}/consultations/${consultationId}?new_status=cancelled`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
 
-      const { error } = await supabase.from("consultations").update({ status: "cancelled" }).eq("id", consultationId)
-
-      if (error) throw error
+      if (!response.ok) throw new Error("Failed to cancel")
 
       toast.success("Consultation cancelled")
       window.location.reload()

@@ -38,8 +38,8 @@ async def create_consultation(
         joinedload(models.Consultation.patient),
         joinedload(models.Consultation.provider)
     ).filter(models.Consultation.id == db_consultation.id).first()
-    
-    return {"success": True, "data": db_consultation}
+
+    return {"success": True, "data": schemas.ConsultationResponse.model_validate(db_consultation).model_dump(mode="json")}
 
 
 @router.get("", response_model=dict)
@@ -57,8 +57,8 @@ async def get_consultations(
             models.Consultation.provider_id == current_user.id
         )
     ).order_by(models.Consultation.created_at.desc()).all()
-    
-    return {"data": consultations}
+
+    return {"data": [schemas.ConsultationResponse.model_validate(c).model_dump(mode="json") for c in consultations]}
 
 
 @router.get("/{consultation_id}", response_model=schemas.ConsultationResponse)
@@ -92,7 +92,7 @@ async def get_consultation(
 @router.put("/{consultation_id}")
 async def update_consultation(
     consultation_id: str,
-    status: schemas.ConsultationStatus = None,
+    new_status: schemas.ConsultationStatus = None,
     diagnosis: str = None,
     prescription: str = None,
     notes: str = None,
@@ -117,8 +117,8 @@ async def update_consultation(
             detail="Not authorized to update this consultation"
         )
     
-    if status:
-        consultation.status = status
+    if new_status:
+        consultation.status = new_status
     if diagnosis:
         consultation.diagnosis = diagnosis
     if prescription:

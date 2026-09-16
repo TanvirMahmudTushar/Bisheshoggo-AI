@@ -108,7 +108,7 @@ export default function VolunteersMap({ volunteers }: VolunteersMapProps) {
   return (
     <div
       ref={mapRef}
-      className="h-[400px] w-full rounded-lg border border-border/40 shadow-lg"
+      className="h-100 w-full rounded-lg border border-border/40 shadow-lg"
       style={{ zIndex: 0 }}
     />
   );

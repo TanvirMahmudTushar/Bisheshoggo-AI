@@ -106,9 +106,9 @@ export class TriageEngine {
 
   private hasEmergencySymptoms(text: string, input: SymptomInput): boolean {
     const hasEmergencyKeyword = EMERGENCY_KEYWORDS.some((keyword) => text.includes(keyword))
-    const hasCriticalVitals = input.temperature && input.temperature > 104
+    const hasCriticalVitals = !!(input.temperature && input.temperature > 104)
     const isHighSeverity = input.severity >= 9
-    const isPregnantWithSevereSymptoms = input.isPregnant && input.severity >= 7
+    const isPregnantWithSevereSymptoms = !!(input.isPregnant && input.severity >= 7)
 
     return hasEmergencyKeyword || hasCriticalVitals || isHighSeverity || isPregnantWithSevereSymptoms
   }

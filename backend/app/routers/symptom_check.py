@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import json
-import subprocess
 import re
 from .. import models, schemas
 from ..database import get_db
@@ -327,21 +326,34 @@ Consider:
 - When immediate medical attention is needed
 - Provide recommendations in Bengali language"""
 
-        print("🦙 Trying Local LLaMA Stack for AI diagnosis...")
-        ai_result = call_local_llama(llama_prompt)
-        
-        # If LLaMA fails, use rule-based system
-        if ai_result is None:
-            print("📋 Using rule-based diagnosis system...")
-            ai_result = analyze_symptoms_locally(
+        print("🤖 Trying Groq (GPT-OSS-120B) for AI diagnosis...")
+        try:
+            from ..ai_service import ai_symptom_analysis
+            ai_result = await ai_symptom_analysis(
                 symptoms=symptoms_list,
                 severity=check_data.severity or "moderate",
                 duration=check_data.duration or "",
                 additional_notes=check_data.additional_notes or ""
             )
-            model_used = "Rule-based System"
-        else:
-            model_used = "Local LLaMA Stack"
+            model_used = ai_result.get("model", "Groq")
+            print(f"✅ AI analysis complete")
+        except Exception as ai_error:
+            print(f"⚠️ AI Error: {ai_error}")
+            print("🦙 Trying Local LLaMA Stack for AI diagnosis...")
+            ai_result = call_local_llama(llama_prompt)
+        
+            # If LLaMA fails, use rule-based system
+            if ai_result is None:
+                print("📋 Using rule-based diagnosis system...")
+                ai_result = analyze_symptoms_locally(
+                    symptoms=symptoms_list,
+                    severity=check_data.severity or "moderate",
+                    duration=check_data.duration or "",
+                    additional_notes=check_data.additional_notes or ""
+                )
+                model_used = "Rule-based System"
+            else:
+                model_used = "Local LLaMA Stack"
         
         print(f"✅ Diagnosis: {ai_result['diagnosis']}")
         print(f"🚨 Urgency: {ai_result['urgency_level']}")
@@ -445,6 +457,6 @@ async def get_symptom_checks(
     checks = db.query(models.SymptomCheck).filter(
         models.SymptomCheck.user_id == current_user.id
     ).order_by(models.SymptomCheck.created_at.desc()).limit(50).all()
-    
-    return {"data": checks}
+
+    return {"data": [schemas.SymptomCheckResponse.model_validate(c).model_dump(mode="json") for c in checks]}
 

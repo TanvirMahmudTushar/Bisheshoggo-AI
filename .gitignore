@@ -50,6 +50,10 @@ backend/app/routers/__pycache__/
 *.sqlite3
 backend/bisheshoggo.db
 
+# Tokens / secrets
+backend/token.txt
+*.txt.bak
+
 # IDE
 .vscode/
 .idea/

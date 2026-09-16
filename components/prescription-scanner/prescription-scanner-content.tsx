@@ -38,65 +38,38 @@ export function PrescriptionScannerContent() {
     const medicines: ExtractedData["medicines"] = []
     const lines = text.split("\n")
 
-    // Enhanced patterns to catch more medicine formats
-    const medicinePatterns = [
-      /medicine[s]?[\s:]+([a-z0-9\s]+?)(?:\n|$)/gi,  // "Medicine: Napa Extra"
-      /(?:tab|cap|syp|inj)\.?\s+([a-z0-9\s]+?)(?:\s+(\d+(?:\.\d+)?\s*(?:mg|ml|g)))?/gi,  // "Tab Napa 500mg"
-      /^\d+[.)]\s+([a-z0-9\s]+?)(?:\s+(\d+(?:\.\d+)?\s*(?:mg|ml|g)))?/gim,  // "1. Napa 500mg"
-      /^(?:rx|R[xX])[:\s]+([a-z0-9\s]+?)(?:\s+(\d+(?:\.\d+)?\s*(?:mg|ml|g)))?/gim,  // "Rx: Napa"
-    ]
-    
-    const dosagePattern = /(\d+\+\d+\+\d+|\d+\s*(?:times?|x)\s*(?:daily|day|per day))/gi
+    // Prefix that marks a line as a medicine entry: a numbered/bulleted list
+    // item, a "Tab/Cap/Syp/Inj" abbreviation, or a "Medicine:"/"Rx:" label.
+    const linePrefixPattern = /^(?:\d+[.)]\s+|[•*]\s+|(?:tab|cap|syp|inj)\.?\s+|(?:medicine[s]?|rx)[\s:]+)/i
+    const strengthPattern = /(\d+(?:\.\d+)?\s*(?:mg|ml|g))\b/i
+    const frequencyPattern = /(\d+\+\d+\+\d+|\d+\s*(?:times?|x)\s*(?:daily|day|per day))/i
+    const durationPattern = /(?:for\s+)?(\d+\s*(?:days?|weeks?|months?))/i
 
-    let currentMedicine: Partial<(typeof medicines)[0]> | null = null
+    const looksLikeMedicineLine = (line: string) =>
+      linePrefixPattern.test(line) || /\b(?:tab|cap|syp|inj)\.?\s+[a-z]/i.test(line)
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim()
-      if (!line || line.length < 3) continue
+    for (const rawLine of lines) {
+      const line = rawLine.trim()
+      if (!line || line.length < 3 || !looksLikeMedicineLine(line)) continue
 
-      // Try each pattern
-      for (const pattern of medicinePatterns) {
-        pattern.lastIndex = 0 // Reset regex
-        const medMatch = line.match(pattern)
-        if (medMatch) {
-          if (currentMedicine?.name) {
-            medicines.push(currentMedicine as (typeof medicines)[0])
-          }
-          
-          let medicineName = medMatch[0]
-            .replace(/^(?:medicine[s]?|tab|cap|syp|inj|rx|R[xX])[\s:.]+/i, '')
-            .replace(/^\d+[.)]\s+/, '')
-            .trim()
-          
-          // Extract dosage from name if present
-          const dosageMatch = medicineName.match(/(\d+(?:\.\d+)?\s*(?:mg|ml|g))/i)
-          const dosageStr = dosageMatch ? dosageMatch[0] : ""
-          
-          currentMedicine = {
-            name: medicineName,
-            dosage: dosageStr,
-            frequency: "",
-            duration: "",
-          }
-          break
-        }
-      }
+      const withoutPrefix = line.replace(linePrefixPattern, "").trim()
 
-      // Extract frequency
-      const freqMatch = line.match(dosagePattern)
-      if (freqMatch && currentMedicine) {
-        currentMedicine.frequency = freqMatch[0]
-      }
+      // The medicine name is everything up to the first " - " separator or
+      // the first dosage strength (e.g. "500mg") that follows it.
+      const stopMatch = withoutPrefix.match(/\s-\s|\s+\d+(?:\.\d+)?\s*(?:mg|ml|g)\b/i)
+      const name = (stopMatch ? withoutPrefix.slice(0, stopMatch.index) : withoutPrefix).trim()
+      if (!name || name.length < 2) continue
 
-      // Extract duration
-      const durationMatch = line.match(/(?:for\s+)?(\d+\s*(?:days?|weeks?|months?))/i)
-      if (durationMatch && currentMedicine) {
-        currentMedicine.duration = durationMatch[1]
-      }
-    }
+      const strengthMatch = withoutPrefix.match(strengthPattern)
+      const frequencyMatch = line.match(frequencyPattern)
+      const durationMatch = line.match(durationPattern)
 
-    if (currentMedicine?.name) {
-      medicines.push(currentMedicine as (typeof medicines)[0])
+      medicines.push({
+        name,
+        dosage: strengthMatch ? strengthMatch[1] : "",
+        frequency: frequencyMatch ? frequencyMatch[1] : "",
+        duration: durationMatch ? durationMatch[1] : "",
+      })
     }
 
     // Fallback: if still no medicines, try to extract any meaningful words after keywords
@@ -246,9 +219,14 @@ export function PrescriptionScannerContent() {
     if (!extractedData) return
 
     try {
-      const response = await fetch("/api/medical-records", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const response = await fetch(`${apiUrl}/medical-records`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           record_type: "prescription",
           title: `Prescription - ${extractedData.date || new Date().toLocaleDateString()}`,
@@ -389,7 +367,7 @@ export function PrescriptionScannerContent() {
                     <CardTitle className="text-base">Scanned Image</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border/40">
+                    <div className="relative aspect-3/4 overflow-hidden rounded-lg border border-border/40">
                       <Image
                         src={image || "/placeholder.svg"}
                         alt="Scanned prescription"

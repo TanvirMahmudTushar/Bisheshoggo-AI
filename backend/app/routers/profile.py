@@ -33,51 +33,66 @@ async def get_profile(
     }
 
 
+PATIENT_FIELDS = (
+    "date_of_birth", "blood_group", "gender", "address", "village", "district", "division",
+    "emergency_contact_name", "emergency_contact_phone", "medical_conditions", "allergies",
+    "current_medications",
+)
+PROVIDER_FIELDS = (
+    "specialization", "license_number", "qualification", "years_of_experience",
+    "consultation_fee", "available_for_telemedicine", "is_available", "languages", "bio",
+)
+
+
 @router.put("")
 async def update_profile(
-    profile_data: schemas.UserUpdate,
-    patient_data: schemas.PatientProfileCreate = None,
-    provider_data: schemas.ProviderProfileCreate = None,
+    profile_data: schemas.ProfileUpdateRequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update user profile"""
+    """Update user profile.
+
+    Accepts a single flat body with user fields and role-specific fields
+    together (matching what the frontend's edit form actually sends), and
+    routes each field to the right table.
+    """
+    data = profile_data.model_dump(exclude_unset=True)
+
     # Update user fields
-    if profile_data.full_name:
-        current_user.full_name = profile_data.full_name
-    if profile_data.phone:
-        current_user.phone = profile_data.phone
-    if profile_data.avatar_url:
-        current_user.avatar_url = profile_data.avatar_url
-    
+    for field in ("full_name", "phone", "avatar_url"):
+        if field in data and data[field] is not None:
+            setattr(current_user, field, data[field])
+
     # Update patient-specific data
-    if patient_data and current_user.role == schemas.UserRole.patient:
+    if current_user.role == schemas.UserRole.patient:
         patient_profile = db.query(models.PatientProfile).filter(
             models.PatientProfile.user_id == current_user.id
         ).first()
-        
+
         if not patient_profile:
             patient_profile = models.PatientProfile(user_id=current_user.id)
             db.add(patient_profile)
-        
-        for field, value in patient_data.model_dump(exclude_unset=True).items():
-            setattr(patient_profile, field, value)
-    
+
+        for field in PATIENT_FIELDS:
+            if field in data:
+                setattr(patient_profile, field, data[field])
+
     # Update provider-specific data
-    if provider_data and current_user.role in [schemas.UserRole.doctor, schemas.UserRole.community_health_worker]:
+    elif current_user.role in [schemas.UserRole.doctor, schemas.UserRole.community_health_worker]:
         provider_profile = db.query(models.ProviderProfile).filter(
             models.ProviderProfile.user_id == current_user.id
         ).first()
-        
+
         if not provider_profile:
             provider_profile = models.ProviderProfile(user_id=current_user.id)
             db.add(provider_profile)
-        
-        for field, value in provider_data.model_dump(exclude_unset=True).items():
-            setattr(provider_profile, field, value)
-    
+
+        for field in PROVIDER_FIELDS:
+            if field in data:
+                setattr(provider_profile, field, data[field])
+
     db.commit()
-    
+
     return {"success": True}
 
 

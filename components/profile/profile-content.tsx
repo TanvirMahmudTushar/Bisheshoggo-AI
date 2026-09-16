@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Save, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase/client"
+import { profileApi } from "@/lib/api/client"
 import { toast } from "sonner"
 import type { Profile, PatientProfile, ProviderProfile } from "@/lib/types"
 
@@ -60,51 +60,29 @@ export function ProfileContent({ user, profile, roleProfile }: ProfileContentPro
     setIsLoading(true)
 
     try {
-      if (!supabase) {
-        throw new Error("Supabase client not available")
+      // Update profile via API
+      const profileData: any = {
+        full_name: fullName,
+        phone: phone,
       }
 
-      // Update basic profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-          phone: phone,
-        })
-        .eq("id", user.id)
-
-      if (profileError) throw profileError
-
-      // Update role-specific profile
       if (profile?.role === "patient") {
-        const { error: patientError } = await supabase
-          .from("patient_profiles")
-          .update({
-            date_of_birth: dateOfBirth || null,
-            blood_group: bloodGroup || null,
-            gender: gender || null,
-            address: address || null,
-            emergency_contact_name: emergencyContactName || null,
-            emergency_contact_phone: emergencyContactPhone || null,
-          })
-          .eq("id", user.id)
-
-        if (patientError) throw patientError
+        profileData.date_of_birth = dateOfBirth || null
+        profileData.blood_group = bloodGroup || null
+        profileData.gender = gender || null
+        profileData.address = address || null
+        profileData.emergency_contact_name = emergencyContactName || null
+        profileData.emergency_contact_phone = emergencyContactPhone || null
       } else if (profile?.role === "doctor" || profile?.role === "community_health_worker") {
-        const { error: providerError } = await supabase
-          .from("provider_profiles")
-          .update({
-            specialization: specialization || null,
-            qualification: qualification || null,
-            years_of_experience: yearsOfExperience ? Number.parseInt(yearsOfExperience) : null,
-            consultation_fee: consultationFee ? Number.parseFloat(consultationFee) : null,
-            available_for_telemedicine: availableForTelemedicine,
-            bio: bio || null,
-          })
-          .eq("id", user.id)
-
-        if (providerError) throw providerError
+        profileData.specialization = specialization || null
+        profileData.qualification = qualification || null
+        profileData.years_of_experience = yearsOfExperience ? Number.parseInt(yearsOfExperience) : null
+        profileData.consultation_fee = consultationFee ? Number.parseFloat(consultationFee) : null
+        profileData.available_for_telemedicine = availableForTelemedicine
+        profileData.bio = bio || null
       }
+
+      await profileApi.updateProfile(profileData)
 
       toast.success("Profile updated successfully")
       setIsEditing(false)

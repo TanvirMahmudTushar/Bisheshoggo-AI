@@ -119,9 +119,14 @@ export function SymptomInputForm({ onResult, language }: SymptomInputFormProps) 
       const diagnosis = language === "en" ? result.recommendation : result.recommendationBn
       const recommendations = language === "en" ? result.advice.join(" | ") : result.adviceBn.join(" | ")
 
-      const response = await fetch("/api/symptom-check", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const response = await fetch(`${apiUrl}/symptom-check`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           symptoms: selectedSymptoms.join(", "),
           severity: severity[0],
@@ -358,7 +363,7 @@ export function SymptomInputForm({ onResult, language }: SymptomInputFormProps) 
         />
       </div>
 
-      <Button type="submit" size="lg" className="w-full text-lg h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700" disabled={selectedSymptoms.length === 0}>
+      <Button type="submit" size="lg" className="w-full text-lg h-14 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700" disabled={selectedSymptoms.length === 0}>
         <span className="mr-2">🩺</span>
         {language === "en" ? "Get Offline Dr Assessment" : "অফলাইন ডাক্তারের মূল্যায়ন পান"}
       </Button>

@@ -51,9 +51,14 @@ export default function CHWDashboardPage() {
     const cases: PatientCase[] = []
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const [symptomResponse, emergencyResponse] = await Promise.all([
-        fetch("/api/symptom-check"),
-        fetch("/api/emergency"),
+        fetch(`${apiUrl}/symptom-check`, { headers }),
+        fetch(`${apiUrl}/emergency`, { headers }),
       ])
 
       if (symptomResponse.ok) {

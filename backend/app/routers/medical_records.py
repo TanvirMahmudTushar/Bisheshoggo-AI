@@ -33,8 +33,8 @@ async def create_medical_record(
     db.add(db_record)
     db.commit()
     db.refresh(db_record)
-    
-    return {"success": True, "data": db_record}
+
+    return {"success": True, "data": schemas.MedicalRecordResponse.model_validate(db_record).model_dump(mode="json")}
 
 
 @router.get("", response_model=dict)

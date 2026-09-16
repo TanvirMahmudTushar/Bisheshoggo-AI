@@ -14,12 +14,13 @@ export interface StorageData {
 class OfflineStorage {
   private getEncryptionKey(): string {
     if (typeof window !== "undefined") {
-      let key = localStorage.getItem("sb_device_key")
-      if (!key) {
-        key = CryptoJS.lib.WordArray.random(32).toString()
-        localStorage.setItem("sb_device_key", key)
+      const existing = localStorage.getItem("sb_device_key")
+      if (existing) {
+        return existing
       }
-      return key
+      const newKey = CryptoJS.lib.WordArray.random(32).toString()
+      localStorage.setItem("sb_device_key", newKey)
+      return newKey
     }
     return ENCRYPTION_KEY
   }

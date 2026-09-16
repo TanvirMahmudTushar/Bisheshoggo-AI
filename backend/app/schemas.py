@@ -83,6 +83,41 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
 
 
+class ProfileUpdateRequest(BaseModel):
+    """
+    Flat body for PUT /profile - matches what the frontend's profile edit
+    form actually sends (user fields and role-specific fields together at
+    the top level, not nested under separate keys).
+    """
+    # User fields
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    # Patient fields
+    date_of_birth: Optional[date] = None
+    blood_group: Optional[str] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    village: Optional[str] = None
+    district: Optional[str] = None
+    division: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medical_conditions: Optional[List[str]] = None
+    allergies: Optional[List[str]] = None
+    current_medications: Optional[List[str]] = None
+    # Provider fields
+    specialization: Optional[str] = None
+    license_number: Optional[str] = None
+    qualification: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    consultation_fee: Optional[float] = None
+    available_for_telemedicine: Optional[bool] = None
+    is_available: Optional[bool] = None
+    languages: Optional[List[str]] = None
+    bio: Optional[str] = None
+
+
 # Patient Profile Schemas
 class PatientProfileCreate(BaseModel):
     date_of_birth: Optional[date] = None

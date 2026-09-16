@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -34,66 +35,79 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen overflow-hidden bg-background flex items-center justify-center p-4">
+      {/* Decorative background glow */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-medical-blue/20 blur-[100px]" />
+        <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-medical-teal/15 blur-[100px]" />
+      </div>
+
+      <div className="relative w-full max-w-md animate-fade-in-up">
         <div className="text-center mb-8">
-          <Image
-            src="/logo.png"
-            alt="Bisheshoggo AI"
-            width={80}
-            height={80}
-            className="mx-auto mb-4"
-          />
-          <h1 className="text-3xl font-bold text-white">Bisheshoggo AI</h1>
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-medical-blue/20 to-medical-teal/10 border border-white/10 shadow-elevated">
+            <Image src="/logo.png" alt="Bisheshoggo AI" width={56} height={56} />
+          </div>
+          <h1 className="text-3xl font-bold text-gradient">Bisheshoggo AI</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Healthcare that reaches where internet can't</p>
         </div>
 
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="border-glow">
           <CardHeader>
-            <h2 className="text-2xl font-bold text-center text-white">Login</h2>
+            <h2 className="text-2xl font-bold text-center">Welcome back</h2>
+            <p className="text-center text-sm text-muted-foreground">Log in to continue to your dashboard</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-slate-800 border-slate-700 text-white"
+                  autoComplete="email"
+                  placeholder="you@example.com"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200">Password</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-slate-800 border-slate-700 text-white"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
                 />
               </div>
 
               {error && (
-                <div className="p-3 bg-red-900/50 border border-red-800 rounded text-red-200 text-sm">
-                  {error}
+                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive animate-fade-in-up">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                disabled={isLoading}
-              >
-                {isLoading ? "Logging in..." : "Login"}
+              <Button type="submit" className="w-full group" size="lg" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  <>
+                    Login
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
               </Button>
 
-              <div className="text-center text-sm text-slate-400">
+              <div className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link href="/auth/sign-up" className="text-emerald-400 hover:text-emerald-300">
+                <Link href="/auth/sign-up" className="font-medium text-primary hover:underline underline-offset-4">
                   Sign up
                 </Link>
               </div>

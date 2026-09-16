@@ -71,8 +71,8 @@ async def create_facility(
     db.add(db_facility)
     db.commit()
     db.refresh(db_facility)
-    
-    return {"success": True, "data": db_facility}
+
+    return {"success": True, "data": schemas.FacilityResponse.model_validate(db_facility).model_dump(mode="json")}
 
 
 @router.get("/{facility_id}", response_model=schemas.FacilityResponse)

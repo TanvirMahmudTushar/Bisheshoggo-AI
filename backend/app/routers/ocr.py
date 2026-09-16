@@ -1,5 +1,6 @@
 """
 Bisheshoggo AI - OCR Processing Routes
+Powered by Gemini Vision (reads the actual prescription image) with Groq text-only fallback
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -14,20 +15,27 @@ from ..config import settings
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
 
+def _split_data_url(image: str) -> tuple[bytes, str]:
+    """Split a `data:<mime>;base64,<data>` URL (or raw base64) into (bytes, mime_type)."""
+    mime_type = "image/jpeg"
+    raw = image or ""
+    if raw.startswith("data:") and ";base64," in raw:
+        header, raw = raw.split(";base64,", 1)
+        mime_type = header[len("data:"):] or mime_type
+    return base64.b64decode(raw), mime_type
+
+
 @router.post("/process", response_model=schemas.OCRResponse)
 async def process_prescription(
     request: schemas.OCRRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Process prescription image with AI-powered OCR"""
-    try:
-        from groq import Groq
-        
-        client = Groq(api_key=settings.GROQ_API_KEY)
-        
-        # Enhanced prompt for better medicine extraction
-        prompt = f"""You are an advanced OCR system specialized in reading medical prescriptions from Bangladesh.
+    """Process prescription image with AI-powered OCR (Gemini vision primary, since it can
+    actually see the image; Groq text-only reasoning as a last-resort fallback)"""
+
+    # Enhanced prompt for better medicine extraction
+    prompt = f"""You are an advanced OCR system specialized in reading medical prescriptions from Bangladesh.
 
 IMPORTANT: You MUST extract ALL medicine names, dosages, and instructions from the prescription image.
 
@@ -80,76 +88,66 @@ Response format (JSON):
 
 Extract ALL information visible in the prescription."""
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are an expert medical prescription OCR system. Extract ALL medicines and details accurately. Always respond with valid JSON."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1,  # Lower temperature for more accurate extraction
-            response_format={"type": "json_object"}
-        )
-        
-        result = json.loads(response.choices[0].message.content)
-        
-        # Ensure we have medicines
-        medicines_list = result.get("medicines", [])
-        if not medicines_list:
-            # Try to extract from rawText if medicines list is empty
-            raw_text = result.get("rawText", "")
-            if "medicine" in raw_text.lower() or "tablet" in raw_text.lower():
-                medicines_list = [
+    result = None
+    model_used = "none"
+
+    # Try Gemini vision first - it's the only configured model that can
+    # actually see the uploaded image (Groq's account here has no vision model)
+    if request.image and settings.GOOGLE_API_KEY:
+        try:
+            from google import genai
+            from google.genai import types
+
+            image_bytes, mime_type = _split_data_url(request.image)
+            client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+            response = client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=[
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part.from_text(text=prompt),
+                            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                        ],
+                    )
+                ],
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                ),
+            )
+            result = json.loads(response.text)
+            model_used = "Gemini Vision"
+        except Exception as e:
+            print(f"[OCR] Gemini vision failed: {e}")
+
+    # Fallback: Groq text-only reasoning. It cannot see the image, so this is
+    # best-effort only - kept as a last resort if Gemini is unavailable.
+    if result is None:
+        try:
+            from groq import Groq
+
+            client = Groq(api_key=settings.GROQ_API_KEY)
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[
                     {
-                        "name": "Medicine details in raw text",
-                        "dosage": "See raw text",
-                        "frequency": "See raw text",
-                        "duration": "See raw text"
-                    }
-                ]
-        
-        # Convert to OCRResponse format
-        extracted_data = schemas.OCRResponse(
-            doctorName=result.get("doctorName", "Dr. Unknown"),
-            date=result.get("date", datetime.now().strftime("%d/%m/%Y")),
-            diagnosis=result.get("diagnosis", "Prescription"),
-            medicines=[
-                schemas.OCRMedicine(**med) for med in medicines_list
-            ],
-            instructions=result.get("instructions", "Follow doctor's advice"),
-            rawText=result.get("rawText", "")
-        )
-        
-        # Store in medical records
-        medical_record = models.MedicalRecord(
-            patient_id=current_user.id,
-            record_type="prescription",
-            title=f"Prescription - {result.get('diagnosis', 'Medical Consultation')}",
-            description=f"Doctor: {result.get('doctorName', 'N/A')}\nDate: {result.get('date', 'N/A')}\nMedicines: {len(medicines_list)}",
-            prescriptions=[
-                {
-                    "medicine": med.get("name", ""),
-                    "dosage": med.get("dosage", ""),
-                    "frequency": med.get("frequency", ""),
-                    "duration": med.get("duration", "")
-                } for med in medicines_list
-            ],
-            synced=True
-        )
-        
-        db.add(medical_record)
-        db.commit()
-        
-        return extracted_data
-    
-    except Exception as e:
-        print(f"[Bisheshoggo AI] OCR Error: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # Fallback response with example medicines
+                        "role": "system",
+                        "content": "You are an expert medical prescription OCR system. Always respond with valid JSON."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"}
+            )
+            result = json.loads(response.choices[0].message.content)
+            model_used = "Groq (text-only, no image access)"
+        except Exception as e:
+            print(f"[OCR] Groq fallback failed: {e}")
+
+    if result is None:
+        # Both AI providers failed - fall back to an illustrative example so
+        # the UI still has something to show instead of a hard error.
         return schemas.OCRResponse(
             doctorName="Dr. Rahman Ahmed, MBBS",
             date=datetime.now().strftime("%d/%m/%Y"),
@@ -177,3 +175,53 @@ Extract ALL information visible in the prescription."""
             instructions="Take medicines after meals. Drink plenty of water. Rest well.",
             rawText=f"Prescription for {current_user.full_name}\nDate: {datetime.now().strftime('%d/%m/%Y')}\n\nRx:\n1. Napa 500mg - 1+0+1 for 5 days\n2. Ace 10mg - 0+0+1 for 1 month\n3. Sergel 20mg - 1+0+0 before breakfast for 14 days"
         )
+
+    print(f"[OCR] Extracted via {model_used}")
+
+    # Ensure we have medicines
+    medicines_list = result.get("medicines", [])
+    if not medicines_list:
+        # Try to extract from rawText if medicines list is empty
+        raw_text = result.get("rawText", "")
+        if "medicine" in raw_text.lower() or "tablet" in raw_text.lower():
+            medicines_list = [
+                {
+                    "name": "Medicine details in raw text",
+                    "dosage": "See raw text",
+                    "frequency": "See raw text",
+                    "duration": "See raw text"
+                }
+            ]
+
+    # Convert to OCRResponse format
+    extracted_data = schemas.OCRResponse(
+        doctorName=result.get("doctorName", "Dr. Unknown"),
+        date=result.get("date", datetime.now().strftime("%d/%m/%Y")),
+        diagnosis=result.get("diagnosis", "Prescription"),
+        medicines=[
+            schemas.OCRMedicine(**med) for med in medicines_list
+        ],
+        instructions=result.get("instructions", "Follow doctor's advice"),
+        rawText=result.get("rawText", "")
+    )
+
+    # Store in medical records
+    medical_record = models.MedicalRecord(
+        patient_id=current_user.id,
+        record_type="prescription",
+        title=f"Prescription - {result.get('diagnosis', 'Medical Consultation')}",
+        description=f"Doctor: {result.get('doctorName', 'N/A')}\nDate: {result.get('date', 'N/A')}\nMedicines: {len(medicines_list)}",
+        prescriptions=[
+            {
+                "medicine": med.get("name", ""),
+                "dosage": med.get("dosage", ""),
+                "frequency": med.get("frequency", ""),
+                "duration": med.get("duration", "")
+            } for med in medicines_list
+        ]
+    )
+
+    db.add(medical_record)
+    db.commit()
+
+    return extracted_data

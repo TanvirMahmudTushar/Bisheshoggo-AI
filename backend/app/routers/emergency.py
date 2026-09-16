@@ -31,8 +31,8 @@ async def create_emergency(
     db.add(db_emergency)
     db.commit()
     db.refresh(db_emergency)
-    
-    return {"success": True, "data": db_emergency}
+
+    return {"success": True, "data": schemas.EmergencyResponse.model_validate(db_emergency).model_dump(mode="json")}
 
 
 @router.get("", response_model=dict)
@@ -52,14 +52,14 @@ async def get_emergencies(
     emergencies = query.order_by(
         models.EmergencySOS.created_at.desc()
     ).limit(50).all()
-    
-    return {"data": emergencies}
+
+    return {"data": [schemas.EmergencyResponse.model_validate(e).model_dump(mode="json") for e in emergencies]}
 
 
 @router.put("/{emergency_id}")
 async def update_emergency(
     emergency_id: str,
-    status: schemas.EmergencyStatus,
+    new_status: schemas.EmergencyStatus,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -80,14 +80,14 @@ async def update_emergency(
             detail="Emergency not found"
         )
     
-    from datetime import datetime
+    from datetime import datetime, timezone
     
-    emergency.status = status
-    if status == schemas.EmergencyStatus.responded:
+    emergency.status = new_status
+    if new_status == schemas.EmergencyStatus.responded:
         emergency.responder_id = current_user.id
-        emergency.responded_at = datetime.utcnow()
-    elif status == schemas.EmergencyStatus.resolved:
-        emergency.resolved_at = datetime.utcnow()
+        emergency.responded_at = datetime.now(timezone.utc)
+    elif new_status == schemas.EmergencyStatus.resolved:
+        emergency.resolved_at = datetime.now(timezone.utc)
     
     db.commit()
     

@@ -41,33 +41,49 @@ export function EmergencyAlert({ language }: EmergencyAlertProps) {
     }
   }, [])
 
-  const getLocation = () => {
+  const getLocation = (): Promise<{ lat: number; lng: number } | null> => {
     setGettingLocation(true)
-    if ("geolocation" in navigator) {
+    return new Promise((resolve) => {
+      if (!("geolocation" in navigator)) {
+        setGettingLocation(false)
+        resolve(null)
+        return
+      }
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setCoordinates({
+          const coords = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          })
+          }
+          setCoordinates(coords)
           setLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`)
           setGettingLocation(false)
+          resolve(coords)
         },
         (error) => {
           console.error("[ ] Error getting location:", error)
           setGettingLocation(false)
-          alert(language === "en" ? "Could not get location" : "অবস্থান পেতে পারিনি")
+          resolve(null)
         },
+        { timeout: 8000 },
       )
-    }
+    })
   }
 
   const handleEmergencyAlert = async () => {
+    // The backend requires coordinates to plot the alert for nearby health
+    // workers - grab them now if the user hasn't already, rather than
+    // silently failing to notify anyone once submitted.
+    let coords = coordinates
+    if (!coords) {
+      coords = await getLocation()
+    }
+
     const data: EmergencySMSData = {
       patientName: patientName || "Patient",
       age: Number.parseInt(age) || 0,
       location: location || "Unknown",
-      coordinates: coordinates || undefined,
+      coordinates: coords || undefined,
       emergency,
       symptoms: symptoms ? symptoms.split(",").map((s) => s.trim()) : [],
     }
@@ -83,15 +99,20 @@ export function EmergencyAlert({ language }: EmergencyAlertProps) {
     offlineStorage.set(`emergency_${emergencyLog.id}`, emergencyLog)
 
     try {
-      const response = await fetch("/api/emergency", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const response = await fetch(`${apiUrl}/emergency`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           location: data.location,
           latitude: data.coordinates?.lat,
           longitude: data.coordinates?.lng,
           emergency_type: data.emergency,
-          description: data.symptoms.join(", "),
+          description: (data.symptoms ?? []).join(", "),
           status: "pending",
         }),
       })
@@ -99,6 +120,23 @@ export function EmergencyAlert({ language }: EmergencyAlertProps) {
       if (response.ok) {
         console.log("[ ] Emergency alert saved to database")
         offlineStorage.markAsSynced(`emergency_${emergencyLog.id}`)
+      } else {
+        // The request reached the server but was rejected (e.g. no
+        // coordinates available) - queue it the same way a network
+        // failure would be, instead of silently dropping it. The local
+        // record and SMS text above are already saved either way.
+        console.error("[ ] Emergency alert rejected by server:", response.status)
+        offlineStorage.set(`pending_emergency_${emergencyLog.id}`, {
+          type: "emergency",
+          data: {
+            location: data.location,
+            latitude: data.coordinates?.lat,
+            longitude: data.coordinates?.lng,
+            emergency_type: data.emergency,
+            description: (data.symptoms ?? []).join(", "),
+            status: "pending",
+          },
+        })
       }
     } catch (error) {
       console.log("[ ] Offline - emergency will sync when online:", error)
@@ -110,7 +148,7 @@ export function EmergencyAlert({ language }: EmergencyAlertProps) {
           latitude: data.coordinates?.lat,
           longitude: data.coordinates?.lng,
           emergency_type: data.emergency,
-          description: data.symptoms.join(", "),
+          description: (data.symptoms || []).join(", "),
           status: "pending",
         },
       })
@@ -156,7 +194,12 @@ export function EmergencyAlert({ language }: EmergencyAlertProps) {
           <Button
             size="lg"
             className="w-full h-24 text-xl font-bold bg-orange-600 hover:bg-orange-700"
-            onClick={getLocation}
+            onClick={async () => {
+              const coords = await getLocation()
+              if (!coords) {
+                alert(language === "en" ? "Could not get location" : "অবস্থান পেতে পারিনি")
+              }
+            }}
           >
             {gettingLocation ? <Loader2 className="w-8 h-8 mr-3 animate-spin" /> : <MapPin className="w-8 h-8 mr-3" />}
             {language === "en" ? "Get My Location" : "আমার অবস্থান পান"}

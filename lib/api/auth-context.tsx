@@ -38,7 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(user);
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      // An invalid/expired token is expected (e.g. after a backend restart
+      // or DB reseed) — clear it quietly instead of surfacing a console error.
       setAuthToken(null);
       setUser(null);
     }

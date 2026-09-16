@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Ambulance, AlertCircle, MapPin, Phone, ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase/client"
+import { emergencyApi } from "@/lib/api/client"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import type { Profile, PatientProfile, EmergencySOS } from "@/lib/types"
@@ -75,21 +75,13 @@ export function EmergencyContent({ userId, profile, patientProfile, activeEmerge
     setIsLoading(true)
 
     try {
-      if (!supabase) {
-        throw new Error("Supabase client not available")
-      }
-
-      const { error } = await supabase.from("emergency_sos").insert({
-        patient_id: userId,
-        location_latitude: location.lat,
-        location_longitude: location.lng,
-        location_address: locationAddress || null,
+      await emergencyApi.create({
+        latitude: location.lat,
+        longitude: location.lng,
+        location: locationAddress || undefined,
         emergency_type: emergencyType,
-        description: description || null,
-        status: "active",
+        description: description || undefined,
       })
-
-      if (error) throw error
 
       toast.success("Emergency SOS sent! Help is on the way.")
       setHasActiveEmergency(true)
@@ -133,7 +125,7 @@ export function EmergencyContent({ userId, profile, patientProfile, activeEmerge
       {/* Warning Banner */}
       <Card className="border-red-500 bg-red-500/10">
         <CardContent className="flex gap-3 py-4">
-          <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-medium text-red-500 mb-1">Life-Threatening Emergency?</p>
             <p className="mb-2">
@@ -184,7 +176,7 @@ export function EmergencyContent({ userId, profile, patientProfile, activeEmerge
                     )}
                     {emergency.location_address && (
                       <p className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
                         {emergency.location_address}
                       </p>
                     )}
@@ -227,7 +219,7 @@ export function EmergencyContent({ userId, profile, patientProfile, activeEmerge
             </div>
             {locationAddress && (
               <div className="p-3 rounded-lg bg-muted flex items-start gap-2">
-                <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="text-sm">{locationAddress}</p>
               </div>
             )}
@@ -260,7 +252,7 @@ export function EmergencyContent({ userId, profile, patientProfile, activeEmerge
             <Textarea
               placeholder="Describe the emergency situation..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
               rows={3}
             />
           </div>

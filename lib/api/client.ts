@@ -207,6 +207,7 @@ export const symptomCheckApi = {
     symptoms: string;
     severity: string;
     duration?: string;
+    additional_notes?: string;
     diagnosis?: string;
     recommendations?: string;
   }) {

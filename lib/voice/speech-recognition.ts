@@ -53,7 +53,12 @@ export class VoiceSpeechRecognition {
     }
 
     this.recognition.onerror = (event: any) => {
-      console.error("[ ] Speech recognition error:", event.error)
+      // "no-speech" (mic timed out with no audio) and "aborted" (stop()
+      // was called deliberately) are routine, expected states - not
+      // failures worth alarming with a hard console error.
+      if (event.error !== "no-speech" && event.error !== "aborted") {
+        console.error("[ ] Speech recognition error:", event.error)
+      }
       this.isListening = false
       if (onError) {
         onError(event.error)

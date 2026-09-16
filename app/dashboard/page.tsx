@@ -9,8 +9,8 @@ import { symptomCheckApi, consultationsApi } from "@/lib/api/client";
 export default function DashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
-  const [recentSymptomChecks, setRecentSymptomChecks] = useState([]);
-  const [upcomingConsultations, setUpcomingConsultations] = useState([]);
+  const [recentSymptomChecks, setRecentSymptomChecks] = useState<any[]>([]);
+  const [upcomingConsultations, setUpcomingConsultations] = useState<any[]>([]);
   const [recordsCount, setRecordsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
