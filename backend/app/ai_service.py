@@ -1,15 +1,13 @@
 """
 Bisheshoggo AI - AI Service
-Groq's GPT-OSS-120B is the primary model for all medical AI features.
-Falls back to a Gemma model via Google's GenAI API if Groq is unavailable.
+Groq's GPT-OSS-120B is the sole model for all medical AI features.
 """
 import json
 import re
 from .config import settings
 
 # ── Model identifiers ────────────────────────────────────────────
-GROQ_MODEL = "openai/gpt-oss-120b"    # primary
-GEMMA_MODEL = "gemma-4-31b-it"        # fallback via Google GenAI
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 # ── System instruction ───────────────────────────────────────
@@ -39,69 +37,27 @@ def _get_groq_client():
     return Groq(api_key=settings.GROQ_API_KEY)
 
 
-# ── Gemma API fallback ────────────────────────────────────────
-def _get_gemma_fallback_client():
-    """Get Google GenAI client for Gemma API fallback."""
-    if not settings.GOOGLE_API_KEY:
-        raise ValueError("GOOGLE_API_KEY required for Gemma fallback")
-    from google import genai
-    return genai.Client(api_key=settings.GOOGLE_API_KEY)
-
-
 # ═══════════════════════════════════════════════════════════════
 #  PUBLIC API  (same signatures the rest of the app relies on)
 # ═══════════════════════════════════════════════════════════════
 
 async def ai_chat(messages: list, stream: bool = False):
     """
-    Chat for medical Q&A. Tries Groq (GPT-OSS-120B) first, falls back to Gemma API.
+    Chat for medical Q&A via Groq (GPT-OSS-120B).
     """
-    # ── Try Groq (primary) ──
-    try:
-        client = _get_groq_client()
-        chat_messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
-        chat_messages.extend({"role": m["role"], "content": m["content"]} for m in messages)
+    client = _get_groq_client()
+    chat_messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
+    chat_messages.extend({"role": m["role"], "content": m["content"]} for m in messages)
 
-        response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=chat_messages,
-        )
-        return {"content": response.choices[0].message.content, "model": GROQ_MODEL}
-    except Exception as e:
-        print(f"[AI] Groq chat failed ({e}), falling back to Gemma API...")
-
-    # ── Gemma API fallback ──
-    try:
-        from google.genai import types
-        client = _get_gemma_fallback_client()
-
-        contents = [
-            types.Content(
-                role="user",
-                parts=[types.Part(text=f"[System Instructions]\n{SYSTEM_INSTRUCTION}\n[End System Instructions]\nPlease acknowledge and follow these instructions.")]
-            ),
-            types.Content(
-                role="model",
-                parts=[types.Part(text="I understand. I am a medical AI assistant for Bisheshoggo AI. How can I help you?")]
-            ),
-        ]
-        for msg in messages:
-            role = "user" if msg["role"] == "user" else "model"
-            contents.append(types.Content(role=role, parts=[types.Part(text=msg["content"])]))
-
-        response = client.models.generate_content(
-            model=GEMMA_MODEL,
-            contents=contents,
-            config=types.GenerateContentConfig(temperature=0.3, max_output_tokens=2048),
-        )
-        return {"content": response.text, "model": GEMMA_MODEL}
-    except Exception as e2:
-        print(f"[AI] Gemma API fallback also failed: {e2}")
-        raise
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=chat_messages,
+    )
+    return {"content": response.choices[0].message.content, "model": GROQ_MODEL}
 
 
 async def ai_symptom_analysis(symptoms: list, severity: str, duration: str, additional_notes: str = ""):
-    """Evidence-based symptom analysis and triage. Groq primary, Gemma fallback."""
+    """Evidence-based symptom analysis and triage via Groq (GPT-OSS-120B)."""
     symptoms_text = ", ".join(symptoms)
 
     prompt = f"""Analyze the following patient symptoms and provide a structured medical assessment.
@@ -129,37 +85,18 @@ Provide your analysis in the following JSON format:
 Be thorough but practical. Consider common conditions in Bangladesh (tropical diseases, waterborne illnesses, nutritional deficiencies).
 Respond ONLY with the JSON object, no additional text."""
 
-    # ── Try Groq (primary) ──
-    try:
-        client = _get_groq_client()
-        response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": "You are a medical AI triage assistant. Respond only with valid JSON."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-        )
-        response_text = response.choices[0].message.content
-        model_used = GROQ_MODEL
-    except Exception as e:
-        print(f"[AI] Groq symptom analysis failed ({e}), falling back to Gemma API...")
-        # ── Gemma API fallback ──
-        try:
-            from google.genai import types
-            client = _get_gemma_fallback_client()
-            full_prompt = "[System: You are a medical AI triage assistant. Respond only with valid JSON.]\n\n" + prompt
-            response = client.models.generate_content(
-                model=GEMMA_MODEL,
-                contents=[types.Content(role="user", parts=[types.Part(text=full_prompt)])],
-                config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=2048),
-            )
-            response_text = response.text
-            model_used = GEMMA_MODEL
-        except Exception as e2:
-            print(f"[AI] Gemma API fallback also failed: {e2}")
-            raise
+    client = _get_groq_client()
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a medical AI triage assistant. Respond only with valid JSON."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+        response_format={"type": "json_object"},
+    )
+    response_text = response.choices[0].message.content
+    model_used = GROQ_MODEL
 
     # Parse JSON response
     response_text = response_text.strip()
@@ -197,7 +134,7 @@ async def ai_medicine_analysis(
     patient_history: str = "",
     consultation_history: str = "",
 ):
-    """Medicine interaction checking and recommendations. Groq primary, Gemma fallback."""
+    """Medicine interaction checking and recommendations via Groq (GPT-OSS-120B)."""
     prompt = f"""As a medical AI assistant, analyze these prescribed medicines for a patient in rural Bangladesh.
 
 PRESCRIBED MEDICINES:
@@ -227,37 +164,18 @@ Provide analysis in JSON format:
 
 Consider medicine availability and cost in rural Bangladesh. Respond ONLY with JSON."""
 
-    # ── Try Groq (primary) ──
-    try:
-        client = _get_groq_client()
-        response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": "You are a medical pharmacology AI. Respond only with valid JSON."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-        )
-        response_text = response.choices[0].message.content
-        model_used = GROQ_MODEL
-    except Exception as e:
-        print(f"[AI] Groq medicine analysis failed ({e}), falling back to Gemma API...")
-        # ── Gemma API fallback ──
-        try:
-            from google.genai import types
-            client = _get_gemma_fallback_client()
-            full_prompt = "[System: You are a medical pharmacology AI. Respond only with valid JSON.]\n\n" + prompt
-            response = client.models.generate_content(
-                model=GEMMA_MODEL,
-                contents=[types.Content(role="user", parts=[types.Part(text=full_prompt)])],
-                config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=2048),
-            )
-            response_text = response.text
-            model_used = GEMMA_MODEL
-        except Exception as e2:
-            print(f"[AI] Gemma API fallback also failed: {e2}")
-            raise
+    client = _get_groq_client()
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a medical pharmacology AI. Respond only with valid JSON."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+        response_format={"type": "json_object"},
+    )
+    response_text = response.choices[0].message.content
+    model_used = GROQ_MODEL
 
     response_text = response_text.strip()
     if response_text.startswith("```"):

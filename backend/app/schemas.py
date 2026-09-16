@@ -153,6 +153,10 @@ class ProviderProfileCreate(BaseModel):
     is_available: bool = True
     languages: Optional[List[str]] = []
     bio: Optional[str] = None
+    district: Optional[str] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class ProviderProfileResponse(ProviderProfileCreate):
@@ -175,6 +179,10 @@ class ProviderWithUser(BaseModel):
     is_available: bool
     languages: Optional[List[str]] = []
     bio: Optional[str] = None
+    district: Optional[str] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     user: UserResponse
 
     class Config:
@@ -215,6 +223,9 @@ class SymptomCheckCreate(BaseModel):
     severity: Optional[str] = None
     duration: Optional[str] = None
     additional_notes: Optional[str] = None
+    diagnosis: Optional[str] = None
+    recommendations: Optional[str] = None
+    suggested_conditions: Optional[List[str]] = None
 
 
 class SymptomCheckResponse(BaseModel):

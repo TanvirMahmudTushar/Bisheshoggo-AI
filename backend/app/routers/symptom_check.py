@@ -1,82 +1,22 @@
 """
 Bisheshoggo AI - Offline Dr (Symptom Check) Routes
-Powered by Local LLaMA Stack for Offline AI Diagnosis
+Persists the diagnosis the client-side triage engine already computed.
+Falls back to a local rule-based re-analysis only for callers that don't supply one.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-import json
-import re
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
-from ..config import settings
 
 router = APIRouter(prefix="/symptom-check", tags=["Offline Dr"])
 
 
-def call_local_llama(prompt: str) -> dict:
-    """
-    Call local LLaMA Stack for AI-powered diagnosis
-    Falls back to rule-based system if LLaMA is unavailable
-    """
-    try:
-        from llama_stack_client import LlamaStackClient
-        
-        print("🦙 Attempting to connect to Local LLaMA Stack...")
-        
-        # Connect to local LLaMA Stack (default port 5001)
-        client = LlamaStackClient(
-            base_url="http://localhost:5001",
-        )
-        
-        # Call LLaMA for medical diagnosis
-        response = client.inference.chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            model_id="Llama3.2-3B-Instruct",  # Use the model you have installed
-            stream=False,
-        )
-        
-        # Extract the response content
-        content = response.completion_message.content
-        print(f"✅ LLaMA Response received: {content[:100]}...")
-        
-        # Try to parse as JSON
-        try:
-            result = json.loads(content)
-            print("✅ Successfully parsed LLaMA JSON response")
-            return result
-        except json.JSONDecodeError:
-            # If not JSON, extract key information
-            print("⚠️ LLaMA response not JSON, extracting information...")
-            return {
-                "diagnosis": content.split('\n')[0] if content else "General Health Concern",
-                "suggested_conditions": ["Requires Professional Evaluation"],
-                "recommendations": content,
-                "urgency_level": "moderate",
-                "home_remedies": [],
-                "warning_signs": [],
-                "should_see_doctor": True
-            }
-    
-    except ImportError:
-        print("⚠️ llama-stack-client not installed")
-        return None
-    except Exception as e:
-        print(f"⚠️ LLaMA Stack Error: {e}")
-        print("   Falling back to rule-based diagnosis...")
-        return None
-
-
 def analyze_symptoms_locally(symptoms: List[str], severity: str, duration: str, additional_notes: str):
     """
-    Local AI-powered symptom analysis using rule-based system + LLaMA
-    Works completely offline
+    Local rule-based symptom analysis. Works completely offline.
+    Used only as a fallback when the caller doesn't already supply a diagnosis.
     """
     symptoms_lower = [s.lower() for s in symptoms]
     
@@ -268,97 +208,30 @@ async def create_symptom_check(
     db: Session = Depends(get_db)
 ):
     """
-    Offline Dr - AI-powered symptom analysis
-    Works completely offline using local LLaMA model
+    Offline Dr - persists the symptom check.
+    Uses the diagnosis/recommendations the client's offline triage engine already
+    computed when supplied; falls back to a local rule-based re-analysis otherwise.
     """
     try:
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🩺 OFFLINE DR - Analyzing Symptoms...")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
-        # Convert comma-separated symptoms to array
         symptoms_list = [s.strip() for s in check_data.symptoms.split(",")]
-        print(f"📋 Symptoms: {symptoms_list}")
-        print(f"⚡ Severity: {check_data.severity}")
-        print(f"⏱️ Duration: {check_data.duration}")
-        
-        # Get patient medical history
-        patient_profile = db.query(models.PatientProfile).filter(
-            models.PatientProfile.user_id == current_user.id
-        ).first()
-        
-        medical_history = ""
-        if patient_profile:
-            medical_history = f"""
-Blood Group: {patient_profile.blood_group or 'N/A'}
-Gender: {patient_profile.gender or 'N/A'}
-Medical Conditions: {', '.join(patient_profile.medical_conditions or [])}
-Allergies: {', '.join(patient_profile.allergies or [])}
-Current Medications: {', '.join(patient_profile.current_medications or [])}
-"""
-        
-        # Try Local LLaMA Stack first
-        llama_prompt = f"""You are an expert medical AI assistant for rural Bangladesh. Analyze these symptoms and provide a diagnosis.
 
-Patient Information:
-{medical_history}
-
-Current Symptoms: {', '.join(symptoms_list)}
-Severity: {check_data.severity or 'Not specified'}
-Duration: {check_data.duration or 'Not specified'}
-Additional Notes: {check_data.additional_notes or 'None'}
-
-Provide your response in the following JSON format:
-{{
-    "diagnosis": "Primary diagnosis in Bengali and English",
-    "suggested_conditions": ["Condition 1", "Condition 2", "Condition 3"],
-    "recommendations": "Detailed recommendations in Bengali including when to seek medical care",
-    "urgency_level": "low" | "moderate" | "high" | "emergency",
-    "home_remedies": ["Remedy 1 in Bengali", "Remedy 2 in Bengali"],
-    "warning_signs": ["Warning sign 1", "Warning sign 2"],
-    "should_see_doctor": true | false
-}}
-
-Consider:
-- Limited access to healthcare facilities in Bangladesh
-- Common conditions in rural areas
-- Home remedies with local ingredients
-- When immediate medical attention is needed
-- Provide recommendations in Bengali language"""
-
-        print("🤖 Trying Groq (GPT-OSS-120B) for AI diagnosis...")
-        try:
-            from ..ai_service import ai_symptom_analysis
-            ai_result = await ai_symptom_analysis(
+        if check_data.diagnosis:
+            ai_result = {
+                "diagnosis": check_data.diagnosis,
+                "recommendations": check_data.recommendations or "",
+                "suggested_conditions": check_data.suggested_conditions or [],
+                "urgency_level": check_data.severity or "moderate",
+            }
+            model_used = "Client (Offline Dr triage engine)"
+        else:
+            ai_result = analyze_symptoms_locally(
                 symptoms=symptoms_list,
                 severity=check_data.severity or "moderate",
                 duration=check_data.duration or "",
                 additional_notes=check_data.additional_notes or ""
             )
-            model_used = ai_result.get("model", "Groq")
-            print(f"✅ AI analysis complete")
-        except Exception as ai_error:
-            print(f"⚠️ AI Error: {ai_error}")
-            print("🦙 Trying Local LLaMA Stack for AI diagnosis...")
-            ai_result = call_local_llama(llama_prompt)
-        
-            # If LLaMA fails, use rule-based system
-            if ai_result is None:
-                print("📋 Using rule-based diagnosis system...")
-                ai_result = analyze_symptoms_locally(
-                    symptoms=symptoms_list,
-                    severity=check_data.severity or "moderate",
-                    duration=check_data.duration or "",
-                    additional_notes=check_data.additional_notes or ""
-                )
-                model_used = "Rule-based System"
-            else:
-                model_used = "Local LLaMA Stack"
-        
-        print(f"✅ Diagnosis: {ai_result['diagnosis']}")
-        print(f"🚨 Urgency: {ai_result['urgency_level']}")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
+            model_used = "Rule-based System"
+
         # Store in database
         db_check = models.SymptomCheck(
             user_id=current_user.id,

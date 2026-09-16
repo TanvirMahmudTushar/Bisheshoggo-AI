@@ -110,7 +110,11 @@ class ProviderProfile(Base):
     is_available = Column(Boolean, default=True)
     languages = Column(JSON, default=list)
     bio = Column(Text, nullable=True)
-    
+    district = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
     # Relationships
     user = relationship("User", back_populates="provider_profile")
 

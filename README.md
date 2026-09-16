@@ -1,4 +1,4 @@
-# Bisheshoggo AI
+# Bisheshoggo AI: An Offline AI-Driven Healthcare Assistant for Rural Areas in Bangladesh
 ### We will bring treatment to the place where even internet can't reach
 
 **Demo:** https://youtu.be/j3ZpnNNLdA4
@@ -17,9 +17,9 @@
 
 **The Silent Struggle: Why Medical Support in Bangladesh's Hill Tracts and Rural Regions Remains Hard to Find**
 
-In the sprawling greens of Bangladesh's hill tracts and the distant stretches of rural villages, life often moves with a quiet rhythm—yet behind that calm lies a persistent struggle: access to medical support. For millions living in these regions, healthcare is not a guaranteed right but a distant hope, often travelling on unpaved roads, across rivers, or through steep, forested terrain.
+In the sprawling greens of Bangladesh's hill tracts and the distant stretches of rural villages, life often moves with a quiet rhythm, yet behind that calm lies a persistent struggle: access to medical support. For millions living in these regions, healthcare is not a guaranteed right but a distant hope, often travelling on unpaved roads, across rivers, or through steep, forested terrain.
 
-When a mother watches her child burn with fever in the dead of night, when an elderly farmer clutches his chest in pain with the nearest hospital hours away, when a pregnant woman faces complications with no medical help in sight—these are not just statistics. These are real people, real families, living in the shadows of our healthcare system.
+When a mother watches her child burn with fever in the dead of night, when an elderly farmer clutches his chest in pain with the nearest hospital hours away, when a pregnant woman faces complications with no medical help in sight, these are not just statistics. These are real people, real families, living in the shadows of our healthcare system.
 
 The challenge becomes even more daunting when internet connectivity is a luxury they cannot afford. In these remote areas, a stable internet connection is as rare as finding a doctor. Yet, the need for medical guidance doesn't wait for better infrastructure or stronger signals.
 
@@ -27,7 +27,7 @@ The challenge becomes even more daunting when internet connectivity is a luxury 
 
 ## Solution Overview
 
-We built Bisheshoggo AI—a comprehensive healthcare platform that works even when the internet doesn't. Every feature is designed with one goal: to bring medical support to those who need it most, regardless of where they live or whether they have an internet connection.
+We built Bisheshoggo AI, a comprehensive healthcare platform that works even when the internet doesn't. Every feature is designed with one goal: to bring medical support to those who need it most, regardless of where they live or whether they have an internet connection.
 
 ![Dashboard](public/screenshots/02_dashboard.png)
 
@@ -43,7 +43,7 @@ By the way, I wanted to utilize Azure OpenAI 4o Realtime API here, but had to ut
 
 ![Find Volunteers](public/screenshots/09_find_volunteers.png)
 
-No one should suffer alone in an emergency. Our volunteer network connects patients with nearby healthcare volunteers and community health workers who can provide immediate assistance. Using interactive maps, you can find help within your community, see their contact details, and reach out anytime—because sometimes, a helping hand is just around the corner. This is available for you in offline.
+No one should suffer alone in an emergency. Our volunteer network connects patients with nearby healthcare volunteers and community health workers who can provide immediate assistance. Using interactive maps, you can find help within your community, see their contact details, and reach out anytime because sometimes, a helping hand is just around the corner. The volunteer list and map stay available after your first visit, even without internet.
 
 ### iii. Offline Doctor
 
@@ -51,7 +51,7 @@ No one should suffer alone in an emergency. Our volunteer network connects patie
 
 ![Offline Doctor assessment result](public/screenshots/04_offline_dr_result.png)
 
-This is our answer to the internet connectivity problem. The Offline Doctor is a symptom checker that works completely without internet, powered by a rule based triage engine that runs entirely on your device with zero network calls and zero AI model needed. Tell it your symptoms in Bengali, and it will assess urgency, provide a diagnosis, suggest home remedies with ingredients available in rural Bangladesh, and tell you when to seek immediate medical attention. It's like having a doctor in your pocket—one that doesn't need WiFi to care about you.
+This is our answer to the internet connectivity problem. The Offline Doctor is a symptom checker that works completely without internet, powered by a rule based triage engine that runs entirely on your device with zero network calls and zero AI model needed. Tell it your symptoms in Bengali, and it will assess urgency, provide a diagnosis, suggest home remedies with ingredients available in rural Bangladesh, and tell you when to seek immediate medical attention. It's like having a doctor in your pocket, one that doesn't need WiFi to care about you.
 
 ### iv. Scan Prescription
 
@@ -59,31 +59,31 @@ This is our answer to the internet connectivity problem. The Offline Doctor is a
 
 ![Scan Prescription extracted result](public/screenshots/07_scan_prescription_result.png)
 
-You went to a doctor a month ago and you are now sick again and aren't sure whether you should eat those medicine or not or you're confused about your prescription? Can't remember how long to take your medicines? Simply take a photo of your prescription, and our AI will read it for you, extract all the medicine names, dosages, and instructions. It will then ask you about your current symptoms, how long you've been taking the medicines, and provide personalized recommendations on whether to continue, stop, or consult a doctor—all in Bengali, all tailored to your situation.
+You went to a doctor a month ago and you are now sick again and aren't sure whether you should eat those medicine or not or you're confused about your prescription? Can't remember how long to take your medicines? Simply take a photo of your prescription, and our AI will read it for you, extract all the medicine names, dosages, and instructions. It will then ask you about your current symptoms, how long you've been taking the medicines, and provide personalized recommendations on whether to continue, stop, or consult a doctor, all in Bengali, all tailored to your situation.
 
 ### v. Emergency SOS
 
 ![Emergency SOS](public/screenshots/08_emergency_sos.png)
 
-When every second counts, our Emergency SOS feature springs into action. With one tap, it alerts nearby healthcare volunteers, shares your location, and sends critical information about your emergency. It's designed for those moments when waiting is not an option—when someone's life hangs in the balance and help must come now.
+When every second counts, our Emergency SOS feature springs into action. With one tap, it alerts nearby healthcare volunteers, shares your location, and sends critical information about your emergency. It's designed for those moments when waiting is not an option, when someone's life hangs in the balance and help must come now.
 
 ### vi. AI Medical Assistant
 
 ![AI Assistant](public/screenshots/05_ai_chat.png)
 
-Have a medical question at 3 AM? Worried about a symptom but not sure if it's serious? Our AI Medical Assistant is your 24/7 medical companion. It answers your health questions, provides guidance on common conditions, suggests when to see a doctor, and offers advice on managing your health—all in simple Bengali that everyone can understand, powered by advanced AI that actually listens.
+Have a medical question at 3 AM? Worried about a symptom but not sure if it's serious? Our AI Medical Assistant is your 24/7 medical companion. It answers your health questions, provides guidance on common conditions, suggests when to see a doctor, and offers advice on managing your health, all in simple Bengali that everyone can understand, powered by advanced AI that actually listens.
 
 ### vii. Case History
 
 ![Case History](public/screenshots/10_case_history.png)
 
-Your health journey matters, and every consultation, every symptom check, every prescription—it all gets stored securely so you never lose track of your medical history. Healthcare providers can see your complete health story, making better decisions about your care, while you have full control over your data, accessible anytime you need it.
+Your health journey matters, and every consultation, every symptom check, every prescription, it all gets stored securely so you never lose track of your medical history. Healthcare providers can see your complete health story, making better decisions about your care, while you have full control over your data, accessible anytime you need it.
 
 ### viii. CHW Dashboard
 
 ![CHW Dashboard](public/screenshots/11_chw_dashboard.png)
 
-For Community Health Workers serving these remote areas, we built a special dashboard where they can manage patient cases, track health trends in their community, monitor emergency alerts, and coordinate care—all from one place. It empowers them to be more effective guardians of their community's health, even with limited resources.
+For Community Health Workers serving these remote areas, we built a special dashboard where they can manage patient cases, track health trends in their community, monitor emergency alerts, and coordinate care, all from one place. It empowers them to be more effective guardians of their community's health, even with limited resources.
 
 ---
 
@@ -107,8 +107,7 @@ For Community Health Workers serving these remote areas, we built a special dash
 * Uvicorn for ASGI server
 
 **AI & Machine Learning:**
-* Groq API (GPT OSS 120B) as the primary model for medical reasoning
-* Gemma API fallback via Google GenAI for cloud based medical reasoning
+* Groq API (GPT OSS 120B) for medical reasoning (chat, symptom analysis, medicine suggestions)
 * Gemini Vision for prescription image reading
 * Custom rule based triage engine (client side, fully offline)
 * Natural Language Processing for Bengali language support
@@ -123,15 +122,15 @@ For Community Health Workers serving these remote areas, we built a special dash
 
 ## How the Solution Handles Limited Internet Access
 
-This is where Bisheshoggo AI truly stands apart. We designed every feature with the harsh reality of rural Bangladesh in mind—where internet is a privilege, not a guarantee.
+This is where Bisheshoggo AI truly stands apart. We designed every feature with the harsh reality of rural Bangladesh in mind where internet is a privilege, not a guarantee.
 
 **Complete Offline Functionality:**
 
-The Offline Doctor is the heart of our offline strategy. It runs a rule based triage engine written in TypeScript directly in your browser—no internet needed, no data sent to the cloud, no waiting for connectivity, and no AI model required at all. It weighs your symptoms against known warning signs and severity thresholds, and provides diagnosis and recommendations—all in Bengali, all offline, all private.
+The Offline Doctor is the heart of our offline strategy. It runs a rule based triage engine written in TypeScript directly in your browser. No internet needed, no data sent to the cloud, no waiting for connectivity, and no AI model required at all. It weighs your symptoms against known warning signs and severity thresholds, and provides diagnosis and recommendations all in Bengali, all offline, all private.
 
-**Groq Primary, Gemma Fallback, for Everything That Needs an AI Model:**
+**Groq, for Everything That Needs an AI Model:**
 
-For the features that do need an AI model, the AI Medical Assistant chat and the medicine suggestions, Groq's GPT OSS 120B is the primary model, chosen for its speed. If Groq is ever unavailable, the platform automatically falls back to a Gemma model via Google's GenAI API. The Offline Doctor itself sits outside this chain entirely, since its client side triage engine needs neither provider to work.
+For the features that do need an AI model, the AI Medical Assistant chat and the medicine suggestions, Groq's GPT OSS 120B is the model, chosen for its speed. The Offline Doctor itself sits outside this entirely, since its client side triage engine needs no AI provider to work.
 
 **Progressive Web App (PWA):**
 
@@ -139,11 +138,11 @@ Bisheshoggo AI works like a native mobile app. Once you visit the website, a ser
 
 **Smart Data Synchronization:**
 
-Every action you take offline is saved locally. When internet connectivity is detected, the app automatically syncs your data with the cloud—symptom checks, consultations, prescriptions. You never lose information, and healthcare workers can access your data when needed, creating a seamless experience that adapts to your connectivity.
+Every action you take offline is saved locally. When internet connectivity is detected, the app automatically syncs your data with the cloud: symptom checks, consultations, prescriptions. You never lose information, and healthcare workers can access your data when needed, creating a seamless experience that adapts to your connectivity.
 
 **Bengali Language Processing:**
 
-All AI features, all recommendations, all instructions are provided in Bengali. This isn't just translation—it's understanding the local context, using familiar terms, suggesting remedies with ingredients available in rural areas, and recommending medicines that are actually accessible in these regions.
+All AI features, all recommendations, all instructions are provided in Bengali. This isn't just translation, it's understanding the local context, using familiar terms, suggesting remedies with ingredients available in rural areas, and recommending medicines that are actually accessible in these regions.
 
 **Lightweight & Fast:**
 
@@ -151,9 +150,9 @@ We optimized every line of code to work on low end devices with minimal processi
 
 **Offline Maps & Volunteer Networks:**
 
-The Find Volunteers feature caches map data and volunteer information, so you can locate nearby help even without internet. Emergency contact numbers, volunteer details, and community health worker information are all stored locally and updated when connectivity is available.
+The Find Volunteers feature caches the volunteer list and map tiles after your first successful load, so you can still see previously loaded doctors and map data on a repeat visit without internet. The very first load still needs one online visit to fetch the volunteer list and map tiles.
 
-This is healthcare that meets people where they are—not where we wish they were. This is technology that respects the reality of rural life. This is hope, packaged in code.
+This is healthcare that meets people where they are, not where we wish they were. This is technology that respects the reality of rural life. This is hope, packaged in code.
 
 ---
 
@@ -163,7 +162,7 @@ This is healthcare that meets people where they are—not where we wish they wer
 * Node.js 18+ and pnpm installed
 * Python 3.12+ installed
 * A Groq API key (free tier available at console.groq.com)
-* A Google API key for the Gemma fallback and prescription OCR (optional but recommended)
+* A Google API key for prescription OCR (Gemini Vision) (optional but recommended)
 
 **Frontend Setup:**
 
@@ -194,7 +193,7 @@ In the quiet villages of Bangladesh's hill tracts, where the nearest hospital is
 
 **Saved Lives:** Our Emergency SOS feature has helped coordinate rapid response in critical situations, connecting patients with nearby volunteers in minutes instead of hours. When every second counts, this has made the difference between life and death.
 
-**Empowered Communities:** Community Health Workers using our CHW Dashboard can now manage more patients, track health trends, and provide better care—becoming more effective guardians of their communities' health.
+**Empowered Communities:** Community Health Workers using our CHW Dashboard can now manage more patients, track health trends, and provide better care, becoming more effective guardians of their communities' health.
 
 **Reduced Healthcare Costs:** By providing accurate initial assessments and clear guidance on home remedies, families avoid unnecessary trips to distant hospitals, saving transportation costs and lost workdays.
 
@@ -204,9 +203,9 @@ In the quiet villages of Bangladesh's hill tracts, where the nearest hospital is
 
 **Digital Health Records:** For the first time, people in remote areas have digital health records that travel with them, ensuring continuity of care regardless of which healthcare provider they visit.
 
-But the true impact isn't measured in numbers—it's in the mother who can now check her child's symptoms at night and know whether to rush to the hospital or wait until morning. It's in the elderly farmer who receives guidance on managing his diabetes without traveling 50 kilometers. It's in the pregnant woman who gets connected to a volunteer nurse in her emergency.
+But the true impact isn't measured in numbers. It's in the mother who can now check her child's symptoms at night and know whether to rush to the hospital or wait until morning. It's in the elderly farmer who receives guidance on managing his diabetes without traveling 50 kilometers. It's in the pregnant woman who gets connected to a volunteer nurse in her emergency.
 
-Every line of code we wrote, every feature we built, every optimization we made—it all leads to one thing: making sure that geography, poverty, and lack of internet never again stand between a person and the medical help they desperately need.
+Every line of code we wrote, every feature we built, every optimization we made, it all leads to one thing: making sure that geography, poverty, and lack of internet never again stand between a person and the medical help they desperately need.
 
 ---
 
@@ -222,19 +221,19 @@ This is just the beginning. Healthcare inequity is a problem too large to solve 
 
 **Telemedicine with Real Doctors:** Creating a network of volunteer doctors who can provide video consultations through our platform, combining AI assistance with human expertise.
 
-**Medication Delivery Network:** Building partnerships with pharmacies to enable medicine delivery to remote areas, so prescription isn't just advice—it's actual medicine reaching patients' hands.
+**Medication Delivery Network:** Building partnerships with pharmacies to enable medicine delivery to remote areas, so prescription isn't just advice, it's actual medicine reaching patients' hands.
 
 **Predictive Health Analytics:** Using aggregated data to predict disease outbreaks, identify health trends, and enable proactive interventions in vulnerable communities.
 
 **SMS Based Features:** For areas where even basic smartphones are rare, developing SMS based health guidance that works on any mobile phone.
 
-**Solar Powered Health Kiosks:** Deploying physical kiosks in the most remote areas, equipped with our technology, basic diagnostic tools, and satellite internet as backup—becoming community health hubs.
+**Solar Powered Health Kiosks:** Deploying physical kiosks in the most remote areas, equipped with our technology, basic diagnostic tools, and satellite internet as backup, becoming community health hubs.
 
 **Training Programs:** Developing training modules for Community Health Workers, using our platform to educate them on latest medical practices and emergency response.
 
 **Research Partnerships:** Collaborating with medical universities to improve our AI models, validate our diagnosis accuracy, and ensure we're providing the highest standard of care.
 
-But our ultimate vision goes beyond technology. We dream of a Bangladesh where no child dies from a treatable disease because the hospital was too far away. Where no mother loses her life in childbirth because help couldn't reach in time. Where every person, regardless of where they live, has access to quality healthcare as their fundamental right—not as a distant hope.
+But our ultimate vision goes beyond technology. We dream of a Bangladesh where no child dies from a treatable disease because the hospital was too far away. Where no mother loses her life in childbirth because help couldn't reach in time. Where every person, regardless of where they live, has access to quality healthcare as their fundamental right, not as a distant hope.
 
 Technology is our tool, but compassion is our compass. And we won't stop until healthcare reaches every corner of Bangladesh, until every life is valued equally, until the silent struggle we set out to address becomes a story we tell our children about how we made things better.
 
@@ -244,7 +243,7 @@ The hill tracts may be remote, but with Bisheshoggo AI, medical support is no lo
 
 ## System Architecture
 
-Our architecture is built for resilience, scalability, and most importantly—reliability in unreliable conditions. Every component is designed to gracefully degrade, ensuring that even in the worst connectivity scenarios, core healthcare features remain accessible.
+Our architecture is built for resilience, scalability, and, most importantly, reliability in unreliable conditions. Every component is designed to gracefully degrade, ensuring that even in the worst connectivity scenarios, core healthcare features remain accessible.
 
 ```mermaid
 graph TD
@@ -254,13 +253,13 @@ graph TD
     U -->|Online request| FE["Next.js Frontend"]
     FE --> API["FastAPI Backend"]
     API --> DB[("SQLite Database")]
-    API --> OCR["Tesseract.js OCR<br/>runs client side"]
-    API --> M1["Groq API<br/>GPT OSS 120B, primary"]
-    M1 -. falls back if unavailable .-> M2["Gemma API<br/>Google GenAI"]
+    FE -->|Prescription scan, online| OCRAPI["OCR Endpoint<br/>Gemini Vision, Groq text fallback"]
+    FE -->|Prescription scan, offline/unreachable| TESS["Tesseract.js OCR<br/>runs client side"]
+    API --> M1["Groq API<br/>GPT OSS 120B"]
 ```
 
 ---
 
-**Bisheshoggo AI** — Because healthcare is not a privilege, it's a right. And distance should never determine whether someone lives or dies.
+**Bisheshoggo AI**: Because healthcare is not a privilege, it's a right. And distance should never determine whether someone lives or dies.
 
 *Built with love, powered by AI, driven by hope.*

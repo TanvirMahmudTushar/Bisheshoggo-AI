@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { MedicineSuggestions } from "./medicine-suggestions"
 import { createWorker } from "tesseract.js"
+import { ocrApi } from "@/lib/api/client"
 
 interface ExtractedData {
   medicines: Array<{
@@ -144,6 +145,26 @@ export function PrescriptionScannerContent() {
         })
         const base64Image = reader.result as string
         setImage(base64Image)
+
+        // Prefer the real backend OCR (Gemini Vision actually reads the image);
+        // fall back to on-device Tesseract.js when offline or the backend call fails.
+        try {
+          const backendResult = await ocrApi.processImage(base64Image)
+          setExtractedData({
+            medicines: backendResult.medicines,
+            doctorName: backendResult.doctorName,
+            date: backendResult.date,
+            diagnosis: backendResult.diagnosis,
+            rawText: backendResult.rawText,
+          })
+          toast({
+            title: "Prescription processed successfully",
+            description: `Extracted ${backendResult.medicines.length} medicine(s)`,
+          })
+          return
+        } catch (backendErr) {
+          console.log("[ ] Backend OCR unavailable, falling back to on-device OCR:", backendErr)
+        }
 
         const worker = await createWorker("eng", 1, {
           logger: (m) => {

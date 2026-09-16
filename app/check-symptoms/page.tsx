@@ -35,7 +35,7 @@ export default function CheckSymptomsPage() {
               </p>
               <div className="mt-2 inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full text-xs text-green-700 dark:text-green-400">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                {language === "en" ? "Powered by Local LLaMA" : "লোকাল LLaMA দ্বারা চালিত"}
+                {language === "en" ? "Works Fully Offline" : "সম্পূর্ণ অফলাইনে কাজ করে"}
               </div>
             </div>
             <Button

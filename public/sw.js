@@ -30,11 +30,33 @@ self.addEventListener("activate", (event) => {
   )
 })
 
+// Leaflet JS/CSS (unpkg.com) and OpenStreetMap tiles (*.tile.openstreetmap.org):
+// cache-first so the volunteers map keeps showing previously-loaded tiles
+// and markers on a repeat visit while offline.
+const isMapAsset = (url) => url.hostname === "unpkg.com" || url.hostname.endsWith("tile.openstreetmap.org")
+
 self.addEventListener("fetch", (event) => {
   const { request } = event
   if (request.method !== "GET") return
 
   const url = new URL(request.url)
+
+  if (isMapAsset(url)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached
+        return fetch(request)
+          .then((response) => {
+            const copy = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
+            return response
+          })
+          .catch(() => cached)
+      }),
+    )
+    return
+  }
+
   if (url.origin !== self.location.origin) return
 
   // Page navigations: prefer the network (so users online always see the

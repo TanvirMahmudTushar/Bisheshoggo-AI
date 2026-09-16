@@ -40,6 +40,10 @@ async def get_providers(
             "is_available": provider.is_available,
             "languages": provider.languages,
             "bio": provider.bio,
+            "district": provider.district,
+            "location": provider.location,
+            "latitude": provider.latitude,
+            "longitude": provider.longitude,
             "profile": {
                 "full_name": provider.user.full_name,
                 "email": provider.user.email,

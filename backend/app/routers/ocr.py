@@ -14,6 +14,10 @@ from ..config import settings
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
+# Vision-capable Gemini model. Google's model catalog changes over time -
+# verify against https://ai.google.dev/gemini-api/docs/models before bumping.
+GEMINI_VISION_MODEL = "gemini-2.5-flash"
+
 
 def _split_data_url(image: str) -> tuple[bytes, str]:
     """Split a `data:<mime>;base64,<data>` URL (or raw base64) into (bytes, mime_type)."""
@@ -101,7 +105,7 @@ Extract ALL information visible in the prescription."""
             image_bytes, mime_type = _split_data_url(request.image)
             client = genai.Client(api_key=settings.GOOGLE_API_KEY)
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=GEMINI_VISION_MODEL,
                 contents=[
                     types.Content(
                         role="user",

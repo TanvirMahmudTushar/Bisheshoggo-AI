@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -36,15 +36,100 @@ interface PatientCase {
   phone?: string
 }
 
+function emergencyToCase(emergency: any): PatientCase {
+  const patient = emergency.patient
+  return {
+    id: emergency.id,
+    patientName: patient?.full_name || "Unknown Patient",
+    age: 0, // Age not in profiles table
+    riskLevel: "emergency",
+    symptoms: emergency.description?.split(", ") || [emergency.emergency_type || "Emergency"],
+    location: emergency.location_address || "Unknown",
+    timestamp: emergency.created_at,
+    hasVoiceMessage: false,
+    phone: patient?.phone || undefined,
+  }
+}
+
+function playAlertSound() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    const ctx = new AudioCtx()
+    const oscillator = ctx.createOscillator()
+    const gain = ctx.createGain()
+    oscillator.connect(gain)
+    gain.connect(ctx.destination)
+    oscillator.frequency.value = 880
+    gain.gain.value = 0.2
+    oscillator.start()
+    oscillator.stop(ctx.currentTime + 0.3)
+  } catch {
+    // Web Audio unavailable - visual badge + notification still cover the alert.
+  }
+}
+
 export default function CHWDashboardPage() {
   const [language, setLanguage] = useState<"en" | "bn">("en")
   const [searchQuery, setSearchQuery] = useState("")
   const [patients, setPatients] = useState<PatientCase[]>([])
   const [loading, setLoading] = useState(true)
+  const [alertsEnabled, setAlertsEnabled] = useState(false)
+  const [newEmergencyCount, setNewEmergencyCount] = useState(0)
+  const seenEmergencyIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     loadPatients()
   }, [])
+
+  const pollEmergencies = useCallback(async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bisheshoggo_token') : null
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const response = await fetch(`${apiUrl}/emergency`, { headers })
+      if (!response.ok) return
+      const data = await response.json()
+      const emergencies = data.data || []
+
+      const newCases: PatientCase[] = []
+      for (const emergency of emergencies) {
+        if (emergency.status === "resolved" || emergency.status === "cancelled") continue
+        if (seenEmergencyIdsRef.current.has(emergency.id)) continue
+        seenEmergencyIdsRef.current.add(emergency.id)
+        newCases.push(emergencyToCase(emergency))
+      }
+
+      if (newCases.length > 0) {
+        setPatients((prev) => [...newCases, ...prev])
+        setNewEmergencyCount((count) => count + newCases.length)
+        playAlertSound()
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          newCases.forEach((c) => {
+            new Notification(language === 'en' ? 'New Emergency SOS' : 'নতুন জরুরি এসওএস', {
+              body: `${c.patientName} — ${c.location}`,
+            })
+          })
+        }
+      }
+    } catch (error) {
+      console.log("[ ] Emergency poll failed:", error)
+    }
+  }, [language])
+
+  useEffect(() => {
+    const interval = setInterval(pollEmergencies, 20000)
+    return () => clearInterval(interval)
+  }, [pollEmergencies])
+
+  const requestAlerts = () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      Notification.requestPermission().then((permission) => {
+        setAlertsEnabled(permission === 'granted')
+      })
+    }
+  }
 
   const loadPatients = async () => {
     setLoading(true)
@@ -81,18 +166,8 @@ export default function CHWDashboardPage() {
       if (emergencyResponse.ok) {
         const emergencyData = await emergencyResponse.json()
         emergencyData.data?.forEach((emergency: any) => {
-          const patient = emergency.patient
-          cases.push({
-            id: emergency.id,
-            patientName: patient?.full_name || "Unknown Patient",
-            age: 0, // Age not in profiles table
-            riskLevel: "emergency",
-            symptoms: emergency.description?.split(", ") || [emergency.emergency_type || "Emergency"],
-            location: emergency.location_address || "Unknown",
-            timestamp: emergency.created_at,
-            hasVoiceMessage: false,
-            phone: patient?.phone || undefined,
-          })
+          cases.push(emergencyToCase(emergency))
+          seenEmergencyIdsRef.current.add(emergency.id)
         })
       }
 
@@ -198,13 +273,20 @@ export default function CHWDashboardPage() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setLanguage(language === "en" ? "bn" : "en")}
-              className="font-semibold"
-            >
-              {language === "en" ? "বাংলা" : "English"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={requestAlerts} className="font-semibold" disabled={alertsEnabled}>
+                {alertsEnabled
+                  ? language === "en" ? "🔔 Alerts On" : "🔔 এলার্ট চালু"
+                  : language === "en" ? "🔔 Enable Alerts" : "🔔 এলার্ট চালু করুন"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setLanguage(language === "en" ? "bn" : "en")}
+                className="font-semibold"
+              >
+                {language === "en" ? "বাংলা" : "English"}
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -293,8 +375,17 @@ export default function CHWDashboardPage() {
               <Tabs defaultValue="all" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="all">{language === "en" ? "All" : "সব"}</TabsTrigger>
-                  <TabsTrigger value="emergency" className="text-red-500">
+                  <TabsTrigger
+                    value="emergency"
+                    className="text-red-500"
+                    onClick={() => setNewEmergencyCount(0)}
+                  >
                     {language === "en" ? "Emergency" : "জরুরি"}
+                    {newEmergencyCount > 0 && (
+                      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                        {newEmergencyCount}
+                      </span>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger value="high">{language === "en" ? "High" : "উচ্চ"}</TabsTrigger>
                   <TabsTrigger value="medium">{language === "en" ? "Medium" : "মধ্যম"}</TabsTrigger>

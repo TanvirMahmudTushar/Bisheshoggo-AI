@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Phone, MapPin, Stethoscope, Clock, User, Search } from "lucide-react";
 import dynamic from "next/dynamic";
+import { providersApi } from "@/lib/api/client";
+import { offlineStorage } from "@/lib/offline/storage";
 
 // Dynamic import to avoid SSR issues with Leaflet
 const VolunteersMap = dynamic(() => import("@/components/volunteers/volunteers-map"), {
@@ -20,127 +22,56 @@ interface Volunteer {
   phone: string;
   location: string;
   district: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   availability: string;
   languages: string[];
   experience: string;
 }
 
-const volunteerDoctors: Volunteer[] = [
-  {
-    id: "1",
-    name: "Dr. Rahman Ahmed",
-    specialization: "General Physician",
-    phone: "+880 1712-345678",
-    location: "Bandarban Sadar",
-    district: "Bandarban",
-    latitude: 22.1953,
-    longitude: 92.2184,
-    availability: "9 AM - 5 PM",
-    languages: ["Bengali", "Chakma", "English"],
-    experience: "15 years"
-  },
-  {
-    id: "2",
-    name: "Dr. Fatima Khan",
-    specialization: "Pediatrician",
-    phone: "+880 1812-456789",
-    location: "Thanchi",
-    district: "Bandarban",
-    latitude: 21.9167,
-    longitude: 92.4667,
-    availability: "10 AM - 6 PM",
-    languages: ["Bengali", "Marma"],
-    experience: "10 years"
-  },
-  {
-    id: "3",
-    name: "Dr. Kamal Hossain",
-    specialization: "Surgeon",
-    phone: "+880 1912-567890",
-    location: "Khagrachari Sadar",
-    district: "Khagrachari",
-    latitude: 23.1193,
-    longitude: 91.9847,
-    availability: "8 AM - 4 PM",
-    languages: ["Bengali", "Tripura", "English"],
-    experience: "20 years"
-  },
-  {
-    id: "4",
-    name: "Dr. Nusrat Jahan",
-    specialization: "Gynecologist",
-    phone: "+880 1612-678901",
-    location: "Rangamati Sadar",
-    district: "Rangamati",
-    latitude: 22.6372,
-    longitude: 92.2061,
-    availability: "9 AM - 3 PM",
-    languages: ["Bengali", "Chakma"],
-    experience: "12 years"
-  },
-  {
-    id: "5",
-    name: "Dr. Amir Ali",
-    specialization: "Cardiologist",
-    phone: "+880 1512-789012",
-    location: "Ruma",
-    district: "Bandarban",
-    latitude: 22.0167,
-    longitude: 92.4000,
-    availability: "10 AM - 4 PM",
-    languages: ["Bengali", "English"],
-    experience: "18 years"
-  },
-  {
-    id: "6",
-    name: "Dr. Sabina Akter",
-    specialization: "Dermatologist",
-    phone: "+880 1712-890123",
-    location: "Dighinala",
-    district: "Khagrachari",
-    latitude: 23.1700,
-    longitude: 92.1600,
-    availability: "11 AM - 7 PM",
-    languages: ["Bengali", "Chakma", "English"],
-    experience: "8 years"
-  },
-  {
-    id: "7",
-    name: "Dr. Mizanur Rahman",
-    specialization: "Orthopedic Surgeon",
-    phone: "+880 1812-901234",
-    location: "Belaichhari",
-    district: "Rangamati",
-    latitude: 23.0167,
-    longitude: 92.3167,
-    availability: "9 AM - 5 PM",
-    languages: ["Bengali", "Marma"],
-    experience: "14 years"
-  },
-  {
-    id: "8",
-    name: "Dr. Ayesha Siddique",
-    specialization: "ENT Specialist",
-    phone: "+880 1912-012345",
-    location: "Lama",
-    district: "Bandarban",
-    latitude: 21.7833,
-    longitude: 92.2000,
-    availability: "8 AM - 2 PM",
-    languages: ["Bengali", "Tripura", "English"],
-    experience: "11 years"
-  }
-];
+const PROVIDERS_CACHE_KEY = "providers_cache";
+
+function mapProvider(provider: any): Volunteer {
+  return {
+    id: provider.id,
+    name: provider.profile?.full_name || "Unknown Doctor",
+    specialization: provider.specialization || "General Physician",
+    phone: provider.profile?.phone_number || "",
+    location: provider.location || "Location not set",
+    district: provider.district || "Unknown",
+    latitude: typeof provider.latitude === "number" ? provider.latitude : null,
+    longitude: typeof provider.longitude === "number" ? provider.longitude : null,
+    availability: provider.is_available ? "Available Now" : "Currently Unavailable",
+    languages: provider.languages || [],
+    experience: provider.years_of_experience ? `${provider.years_of_experience} years` : "N/A",
+  };
+}
 
 export default function VolunteersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
-  const [filteredVolunteers, setFilteredVolunteers] = useState(volunteerDoctors);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [filteredVolunteers, setFilteredVolunteers] = useState<Volunteer[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let filtered = volunteerDoctors;
+    (async () => {
+      try {
+        const response = await providersApi.getAll();
+        const mapped = (response.data || []).map(mapProvider);
+        setVolunteers(mapped);
+        offlineStorage.set(PROVIDERS_CACHE_KEY, mapped, true);
+      } catch (error) {
+        console.log("[ ] Providers fetch failed, using offline cache:", error);
+        setVolunteers(offlineStorage.get(PROVIDERS_CACHE_KEY) || []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    let filtered = volunteers;
 
     if (searchTerm) {
       filtered = filtered.filter(vol =>
@@ -155,9 +86,12 @@ export default function VolunteersPage() {
     }
 
     setFilteredVolunteers(filtered);
-  }, [searchTerm, selectedDistrict]);
+  }, [volunteers, searchTerm, selectedDistrict]);
 
-  const districts = Array.from(new Set(volunteerDoctors.map(v => v.district)));
+  const districts = Array.from(new Set(volunteers.map(v => v.district)));
+  const mappableVolunteers = filteredVolunteers.filter(
+    (v): v is Volunteer & { latitude: number; longitude: number } => v.latitude !== null && v.longitude !== null
+  );
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
@@ -199,8 +133,14 @@ export default function VolunteersPage() {
       </div>
 
       <div className="mb-6">
-        <VolunteersMap volunteers={filteredVolunteers} />
+        <VolunteersMap volunteers={mappableVolunteers} />
       </div>
+
+      {loading && (
+        <Card className="p-12 text-center mb-6">
+          <p className="text-muted-foreground">Loading volunteer doctors...</p>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredVolunteers.map((volunteer) => (
@@ -258,7 +198,7 @@ export default function VolunteersPage() {
         ))}
       </div>
 
-      {filteredVolunteers.length === 0 && (
+      {!loading && filteredVolunteers.length === 0 && (
         <Card className="p-12 text-center">
           <p className="text-muted-foreground">No volunteers found matching your search</p>
         </Card>
